@@ -1,0 +1,61 @@
+workflows:
+  ios-unsigned:
+    name: iOS Unsigned IPA
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      node: 20.17.0
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      # 1. 安装依赖
+      - name: Install dependencies
+        script: npm install
+
+      # 2. 用 expo prebuild 生成 iOS 原生工程
+      - name: Expo prebuild (iOS)
+        script: npx expo prebuild --platform ios --clean
+
+      # 3. 安装 CocoaPods 依赖
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+
+      # 4. 构建未签名 IPA（CODE_SIGNING_ALLOWED=NO）
+      - name: Build unsigned IPA
+        script: |
+          cd ios
+          xcodebuild \
+            -workspace Tetris.xcworkspace \
+            -scheme Tetris \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ./build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            | xcpretty
+
+      # 5. 将 .app 打包成 .ipa
+      - name: Package IPA
+        script: |
+          APP_PATH=$(find ios/build -name "*.app" | head -1)
+          mkdir -p ios/build/ipa/Payload
+          cp -r "$APP_PATH" ios/build/ipa/Payload/
+          cd ios/build/ipa
+          zip -r ../Tetris-unsigned.ipa Payload
+          echo "✅ IPA created at ios/build/Tetris-unsigned.ipa"
+
+    artifacts:
+      - ios/build/Tetris-unsigned.ipa
+
+    publishing:
+      email:
+        recipients:
+          - your@email.com   # ← 改成你的邮箱，构建完发送下载链接
+        notify:
+          success: true
+          failure: true
