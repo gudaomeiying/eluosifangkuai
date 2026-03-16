@@ -55,7 +55,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your@email.com   # ← 改成你的邮箱，构建完发送下载链接
+          - 345422168@qq.com   # ← 改成你的邮箱，构建完发送下载链接
         notify:
           success: true
           failure: true
